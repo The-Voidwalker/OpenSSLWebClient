@@ -1,50 +1,20 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35806.99 d17.13
+VisualStudioVersion = 17.13.35806.99
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenSSLWebClient", "OpenSSLWebClient.csproj", "{7A17F705-A4D8-4AC7-BB3C-09C921768C64}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
-		Debug|ARM64 = Debug|ARM64
-		Debug|x64 = Debug|x64
-		Debug|x86 = Debug|x86
-		openssl|Any CPU = openssl|Any CPU
-		openssl|ARM64 = openssl|ARM64
-		openssl|x64 = openssl|x64
-		openssl|x86 = openssl|x86
 		Release|Any CPU = Release|Any CPU
-		Release|ARM64 = Release|ARM64
-		Release|x64 = Release|x64
-		Release|x86 = Release|x86
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
 		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|ARM64.ActiveCfg = Debug|ARM64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|ARM64.Build.0 = Debug|ARM64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|x64.ActiveCfg = Debug|x64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|x64.Build.0 = Debug|x64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|x86.ActiveCfg = Debug|x86
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Debug|x86.Build.0 = Debug|x86
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|Any CPU.ActiveCfg = openssl|Any CPU
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|Any CPU.Build.0 = openssl|Any CPU
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|ARM64.ActiveCfg = openssl|ARM64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|ARM64.Build.0 = openssl|ARM64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|x64.ActiveCfg = openssl|x64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|x64.Build.0 = openssl|x64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|x86.ActiveCfg = openssl|x86
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.openssl|x86.Build.0 = openssl|x86
 		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|Any CPU.Build.0 = Release|Any CPU
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|ARM64.ActiveCfg = Release|ARM64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|ARM64.Build.0 = Release|ARM64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|x64.ActiveCfg = Release|x64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|x64.Build.0 = Release|x64
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|x86.ActiveCfg = Release|x86
-		{7A17F705-A4D8-4AC7-BB3C-09C921768C64}.Release|x86.Build.0 = Release|x86
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

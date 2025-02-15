@@ -20,7 +20,7 @@ namespace OpenSSLWebClient
         /// Returns numerical error code for the previous failed function call.
         /// </summary>
         /// <remarks>Pulls from an internal error stack.</remarks>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int ERR_get_error();
 
         /// <summary>
@@ -29,7 +29,7 @@ namespace OpenSSLWebClient
         /// <param name="e">Error code integer</param>
         /// <param name="buf">Pointer to a buffer to store the requested string</param>
         /// <param name="len">Size of <c>buf</c></param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void ERR_error_string_n(int e, IntPtr buf, UIntPtr len);
 
         public static int ERR_GET_LIB(int e)

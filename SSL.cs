@@ -12,7 +12,7 @@ namespace OpenSSLWebClient
         /// <see href="https://docs.openssl.org/3.4/man3/SSL_CTX_new/"/>
         /// </summary>
         /// <returns>Pointer to the TLS client method</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr TLS_client_method();
 
         /// <summary>
@@ -21,7 +21,7 @@ namespace OpenSSLWebClient
         /// </summary>
         /// <param name="method">Pointer to SSL method (<see cref="TLS_client_method"/>)</param>
         /// <returns>Pointer to SSL CTX object in unmanaged memory</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr SSL_CTX_new(IntPtr method);
 
         /// <summary>
@@ -34,7 +34,7 @@ namespace OpenSSLWebClient
         /// (see <see href="https://docs.openssl.org/3.4/man3/SSL_CTX_set_verify/#notes"/> for more details)
         /// </param>
         /// <param name="cb">Callback function to be used, can be <c>IntPtr.Zero</c> for no callback</param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SSL_CTX_set_verify(IntPtr ctx, int verify, IntPtr cb);
 
         /// <summary>
@@ -43,7 +43,7 @@ namespace OpenSSLWebClient
         /// </summary>
         /// <param name="ctx">Pointer to SSL CTX object</param>
         /// <returns>1 on successful operation, 0 on error</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_CTX_set_default_verify_paths(IntPtr ctx);
 
         /// <summary>
@@ -100,7 +100,7 @@ namespace OpenSSLWebClient
         /// <param name="cmd">One of the <c>SSL_CTRL_*</c> <see cref="Constants"/></param>
         /// <param name="larg">Integer argument</param>
         /// <param name="parg">Pointer argument</param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_CTX_ctrl(IntPtr ctx, int cmd, int larg, IntPtr parg);
 
         /// <summary>
@@ -117,7 +117,7 @@ namespace OpenSSLWebClient
         /// <returns>
         /// 1 on successful operation, 0 on failure.
         /// </returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_CTX_load_verify_locations(IntPtr ctx, string CAfile, string CApath);
 
         /// <summary>
@@ -127,7 +127,7 @@ namespace OpenSSLWebClient
         /// <param name="ctx">Pointer to SSL CTX object</param>
         /// <returns>Pointer to SSL object or <c>IntPtr.Zero</c> on failure</returns>
         /// <remarks>Return of <c>IntPtr.Zero</c> is untested!</remarks>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern IntPtr SSL_new(IntPtr ctx);
 
         /// <summary>
@@ -140,7 +140,7 @@ namespace OpenSSLWebClient
         /// <param name="ssl">Pointer to SSL object</param>
         /// <param name="read_bio">Pointer to BIO object used for reads</param>
         /// <param name="write_bio">Pointer to BIO object used for writes</param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SSL_set_bio(IntPtr ssl, IntPtr read_bio, IntPtr write_bio);
 
         /// <summary>
@@ -166,7 +166,7 @@ namespace OpenSSLWebClient
         /// <param name="cmd">One of the <c>SSL_CTRL_*</c> <see cref="Constants"/></param>
         /// <param name="larg">Integer argument</param>
         /// <param name="parg">Pointer argument</param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_ctrl(IntPtr ssl, int cmd, int larg, string parg);
 
         /// <summary>
@@ -175,7 +175,7 @@ namespace OpenSSLWebClient
         /// </summary>
         /// <param name="ssl">Pointer to SSL object</param>
         /// <returns>1 on success, 0 on error</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_connect(IntPtr ssl);
 
         /// <summary>
@@ -188,10 +188,10 @@ namespace OpenSSLWebClient
         /// <param name="ssl">Pointer to SSL object</param>
         /// <param name="ret">Value returned by the previous TLS/SSL function</param>
         /// <returns></returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_get_error(IntPtr ssl, int ret);
 
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_get_verify_result(IntPtr ssl);
 
         /// <summary>
@@ -203,7 +203,7 @@ namespace OpenSSLWebClient
         /// </remarks>
         /// <param name="ssl">Pointer to SSL object</param>
         /// <returns>0 for ongoing but incomplete shutdown, 1 for successful, less than 0 for not successful</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_shutdown(IntPtr ssl);
 
         /// <summary>
@@ -211,7 +211,7 @@ namespace OpenSSLWebClient
         /// <see href="https://docs.openssl.org/3.4/man3/SSL_free/"/>
         /// </summary>
         /// <param name="ssl">Pointer to SSL object</param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SSL_free(IntPtr ssl);
 
         /// <summary>
@@ -219,7 +219,7 @@ namespace OpenSSLWebClient
         /// <see href="https://docs.openssl.org/3.4/man3/SSL_CTX_free/"/>
         /// </summary>
         /// <param name="ssl">Pointer to SSL CTX object</param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern void SSL_CTX_free(IntPtr ctx);
 
         /// <summary>
@@ -231,7 +231,7 @@ namespace OpenSSLWebClient
         /// <param name="num">Number of bytes to send to the peer</param>
         /// <param name="written">Pointer to an integer that will contain the number of bytes written to the peer</param>
         /// <returns>1 on success, 0 on failure</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_write_ex(IntPtr ssl, string buf, UIntPtr num, IntPtr written);
 
         /// <summary>
@@ -243,7 +243,7 @@ namespace OpenSSLWebClient
         /// <param name="num">Maxium bytes to read from the peer</param>
         /// <param name="written">Pointer to an integer that will contain the number of bytes read from the peer</param>
         /// <returns>1 on success, 0 on failure</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_read_ex(IntPtr ssl, IntPtr buf, UIntPtr num, IntPtr readbytes);
 
         /// <summary>
@@ -253,7 +253,7 @@ namespace OpenSSLWebClient
         /// <param name="ssl">Pointer to SSL object</param>
         /// <param name="hostname">Expected hostname of server</param>
         /// <returns></returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_set1_host(IntPtr ssl, string hostname);
     }
 

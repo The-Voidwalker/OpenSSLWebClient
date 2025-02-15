@@ -28,7 +28,7 @@ namespace OpenSSLWebClient
         /// <param name="protocol">Specifies protocol, setting 0 will accept any</param>
         /// <param name="res">Pointer to a pointer to the start of a <c>BIO_ADDRINFO</c> chain</param>
         /// <returns><c>true</c> if operation completed successfully</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern bool BIO_lookup_ex(string hostname, string port, int lookup_type, int family, int socktype, int protocol, IntPtr res);
 
         /// <summary>
@@ -40,7 +40,7 @@ namespace OpenSSLWebClient
         /// IntPtr.Zero if there is no next <c>BIO_ADDRINFO</c>
         /// </returns>
         /// <remarks>Return case of IntPtr.Zero is untested!</remarks>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr BIO_ADDRINFO_next(IntPtr bai);
 
         /// <summary>
@@ -49,7 +49,7 @@ namespace OpenSSLWebClient
         /// </summary>
         /// <param name="bai">Pointer to <c>BIO_ADDRINFO</c> object</param>
         /// <returns>One of <c>AF_INET</c>, <c>AF_INET6</c>, and <c>AF_UNIX</c></returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern int BIO_ADDRINFO_family(IntPtr bai);
 
         /// <summary>
@@ -58,7 +58,7 @@ namespace OpenSSLWebClient
         /// </summary>
         /// <param name="bai">Pointer to a <c>BIO_ADDRINFO</c> object</param>
         /// <returns>Pointer to a <c>BIO_ADDR</c> object in unmanaged memory</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr BIO_ADDRINFO_address(IntPtr bai);
 
         /// <summary>
@@ -66,7 +66,7 @@ namespace OpenSSLWebClient
         /// <see href="https://docs.openssl.org/3.4/man3/BIO_ADDRINFO/"/>
         /// </summary>
         /// <param name="bai">Pointer to first <c>BIO_ADDRINFO</c> object in a chain</param>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern void BIO_ADDRINFO_free(IntPtr bai);
 
         /// <summary>
@@ -81,7 +81,7 @@ namespace OpenSSLWebClient
         /// Socket number if successful.
         /// -1 on error.
         /// </returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern int BIO_socket(int domain, int socktype, int protocol, int options);
 
         /// <summary>
@@ -92,7 +92,7 @@ namespace OpenSSLWebClient
         /// <param name="addr">Pointer to address information, fetch using <c>BIO_ADDRINFO_address</c></param>
         /// <param name="options">May be zero or any combination of <c>Constants.BIO_SOCK_*</c> constants</param>
         /// <returns>1 on success, 0 on error</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern bool BIO_connect(int sock, IntPtr addr, int options);
 
         /// <summary>
@@ -101,14 +101,14 @@ namespace OpenSSLWebClient
         /// </summary>
         /// <param name="sock">Socket number</param>
         /// <returns>1 on success, 0 on error, should be safe to discard</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern bool BIO_closesocket(int sock);
 
         /// <summary>
         /// Returns socket BIO method.
         /// <see href="https://docs.openssl.org/3.4/man3/BIO_s_socket/"/>
         /// </summary>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr BIO_s_socket();
 
         /// <summary>
@@ -118,7 +118,7 @@ namespace OpenSSLWebClient
         /// <param name="method">Fetch using <see cref="BIO_s_socket"/></param>
         /// <returns>Pointer to new <c>BIO</c> object or <c>IntPtr.Zero</c> on error.</returns>
         /// <remarks>Return of IntPtr.Zero is untested!</remarks>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr BIO_new(IntPtr method);
 
         /// <summary>
@@ -130,7 +130,7 @@ namespace OpenSSLWebClient
         /// <param name="larg">First argument</param>
         /// <param name="iarg">Second argument</param>
         /// <returns>Varies based on cmd</returns>
-        [DllImport("D:\\git\\autowikibrowser-code-r12773\\AWB\\OpenSSLWebClient\\lib\\libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern int BIO_int_ctrl(IntPtr bio, int cmd, int larg, int iarg);
 
         /// <summary>
