@@ -1,4 +1,9 @@
-﻿namespace OpenSSLWebClient
+﻿using System;
+using System.IO;
+using System.Reflection;
+using System.Runtime.InteropServices;
+
+namespace OpenSSLWebClient
 {
     /// <summary>
     /// Handles passing trusted certificates to OpenSSL.
@@ -13,7 +18,25 @@
         /// <summary>
         /// Perform any necessary setup then load values into one or both of <see cref="CAFile"/> and <see cref="CAPath"/>.
         /// </summary>
-        static partial void LoadLocations();
+        /// <remarks>
+        /// Behavior varies depending on the OS.
+        /// </remarks>
+        internal static void LoadLocations(bool refresh = false)
+        {
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                string basePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
+                CAFile = Path.Combine(basePath, "ssl", "certificates.pem");
+                if (!File.Exists(CAFile) || refresh)
+                {
+                    PrepareCAFile();
+                }
+            }
+            else
+            {
+                throw new PlatformNotSupportedException("Project currently only supports Windows.");
+            }
+        }
 
         /// <summary>
         /// Gets both the CAFile and CAPath used by openssl. See
@@ -22,11 +45,11 @@
         /// </summary>
         /// <remarks>Calls partial method LoadLocations prior to return the first time this method is called.</remarks>
         /// <returns>Array <c>{ CAFile, CAPath }</c> One or both strings may be null.</returns>
-        public static string[] VerificationLocations()
+        public static string[] VerificationLocations(bool refresh = false)
         {
-            if (!loaded)
+            if (!loaded || refresh)
             {
-                LoadLocations();
+                LoadLocations(refresh);
                 loaded = true;
             }
             return new string[] { CAFile, CAPath };

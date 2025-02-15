@@ -1,6 +1,7 @@
 ﻿using System;
 using System.IO;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 
@@ -11,8 +12,16 @@ namespace OpenSSLWebClient
         /// <summary>
         /// Read the Root X509Store for the CurrentUser and write all certificates in PEM format to CAFile.
         /// </summary>
+        /// <remarks>
+        /// Only supported on windows platforms.
+        /// </remarks>
         internal static void PrepareCAFile()
         {
+            if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                throw new PlatformNotSupportedException("CertificateStore.PrepareCAFile is only available on Windows.");
+            }
+            
             using (X509Store store = new X509Store(StoreName.Root, StoreLocation.CurrentUser))
             {
                 store.Open(OpenFlags.ReadOnly | OpenFlags.OpenExistingOnly);
@@ -31,20 +40,6 @@ namespace OpenSSLWebClient
                 }
                 Directory.CreateDirectory(Path.GetDirectoryName(CAFile));
                 File.WriteAllText(CAFile, pemBuilder.ToString(), Encoding.UTF8);
-            }
-        }
-
-        /// <summary>
-        /// Sets up CAFile to be ssl\certificates.pem inside the same directory as the executing assembly.
-        /// If the file does not exist already, <see cref="PrepareCAFile"/> is called.
-        /// </summary>
-        static partial void LoadLocations()
-        {
-            string basePath = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
-            CAFile = Path.Combine(basePath, "ssl", "certificates.pem");
-            if (!File.Exists(CAFile))
-            {
-                PrepareCAFile();
             }
         }
     }
