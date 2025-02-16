@@ -1,6 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using OpenSSLWebClient.Exceptions;
 using System;
-using OpenSSLWebClient.Exceptions;
+using System.Runtime.InteropServices;
 
 namespace OpenSSLWebClient.Components
 {
@@ -192,7 +192,7 @@ namespace OpenSSLWebClient.Components
         {
             if (!HasSocket)
             {
-                throw new InvalidOleVariantTypeException("Cannot create a BIO without a socket!");
+                throw new InvalidOperationException("Cannot create a BIO without a socket!");
             }
 
             _bio = BIOInterop.BIO_new(BIOInterop.BIO_s_socket());

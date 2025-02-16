@@ -1,6 +1,6 @@
-﻿using System.Runtime.InteropServices;
+﻿using OpenSSLWebClient.Exceptions;
 using System;
-using OpenSSLWebClient.Exceptions;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace OpenSSLWebClient.Components
