@@ -2,8 +2,6 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <OutputType>Library</OutputType>
-    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
-    <Optimize>true</Optimize>
     <Configurations>Debug;Release</Configurations>
     <AssemblyTitle>OpenSSLWebClient</AssemblyTitle>
     <Product>OpenSSLWebClient</Product>
