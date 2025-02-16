@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.InteropServices;
 
-namespace OpenSSLWebClient
+namespace OpenSSLWebClient.Exceptions
 {
     /// <summary>
     /// Documentation incomplete. For a human readable error message, use:
@@ -34,20 +34,20 @@ namespace OpenSSLWebClient
 
         public static int ERR_GET_LIB(int e)
         {
-            if ((e & (((uint)int.MaxValue) + 1)) != 0)
+            if ((e & (uint)int.MaxValue + 1) != 0)
             {
                 return 2;
             }
-            return (e >> 23) & 0xFF;
+            return e >> 23 & 0xFF;
         }
 
         public static int ERR_GET_REASON(int e)
         {
-            if ((e & (((uint)int.MaxValue) + 1)) != 0)
+            if ((e & (uint)int.MaxValue + 1) != 0)
             {
                 return 0;
             }
-            return (int)(e & 0x7FFFFF);
+            return e & 0x7FFFFF;
         }
 
         public static string GetErrorString()

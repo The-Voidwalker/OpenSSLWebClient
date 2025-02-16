@@ -1,7 +1,8 @@
 ﻿using System.Runtime.InteropServices;
 using System;
+using OpenSSLWebClient.Exceptions;
 
-namespace OpenSSLWebClient
+namespace OpenSSLWebClient.Components
 {
     /// <summary>
     /// Contains all P/Invoke declarations for manipulating BIO objects.
@@ -185,13 +186,13 @@ namespace OpenSSLWebClient
         /// <remarks>
         /// <see cref="CreateSocket"/> MUST be called before this method.
         /// </remarks>
-        /// <exception cref="MissingSocketException"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
         /// <exception cref="InteropException"></exception>
         protected void CreateBIO()
         {
             if (!HasSocket)
             {
-                throw new MissingSocketException("Cannot create a BIO without a socket!");
+                throw new InvalidOleVariantTypeException("Cannot create a BIO without a socket!");
             }
 
             _bio = BIOInterop.BIO_new(BIOInterop.BIO_s_socket());

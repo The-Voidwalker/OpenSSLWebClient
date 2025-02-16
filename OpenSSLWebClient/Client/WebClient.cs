@@ -1,4 +1,4 @@
-﻿namespace OpenSSLWebClient
+﻿namespace OpenSSLWebClient.Client
 {
     public class WebClient
     {

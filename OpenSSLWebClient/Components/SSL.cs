@@ -1,7 +1,9 @@
 ﻿using System.Runtime.InteropServices;
 using System;
+using OpenSSLWebClient.Exceptions;
+using System.Text;
 
-namespace OpenSSLWebClient
+namespace OpenSSLWebClient.Components
 {
     /// <summary>
     /// Stores P/Invoke definitions for managing SSL objects
@@ -443,23 +445,57 @@ namespace OpenSSLWebClient
         }
 
         /// <summary>
-        /// Writes the provided string over the SSL connection
+        /// Writes the provided string over the SSL connection.
         /// </summary>
         /// <param name="s">String to be written to peer</param>
         /// <exception cref="InteropException">Thrown on SSL_write_ex failure</exception>
-        public void Write(string s)
+        /// <returns>Number of bytes written to the peer.</returns>
+        public int Write(string s)
         {
             IntPtr written = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UIntPtr)));
             Marshal.WriteIntPtr(written, IntPtr.Zero);
             int ret = SSLInterop.SSL_write_ex(_ssl, s, (UIntPtr)s.Length, written);
+            int readBytes = (int)Marshal.ReadIntPtr(written);
             Marshal.FreeHGlobal(written);
             if (ret == 0)
             {
                 throw new InteropException("Failed to write to SSL\nSSL Error code "
                     + SSLInterop.SSL_get_error(_ssl, ret)
-                    + "\n" + ErrorsInterop.GetErrorString()
-                    + "\nWindows: " + Marshal.GetLastWin32Error());
+                    + "\n" + ErrorsInterop.GetErrorString());
             }
+            return readBytes;
+        }
+
+        public int Read(ref byte[] buf)
+        {
+            if (buf == null || buf.Length == 0)
+            {
+                throw new ArgumentException("buf must be non null and have a length greater than zero.");
+            }
+            
+            IntPtr readbytesPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UIntPtr)));
+            Marshal.WriteIntPtr(readbytesPtr, IntPtr.Zero);
+            
+            IntPtr bufPtr = Marshal.AllocHGlobal(Marshal.SizeOf(buf[0]) * buf.Length);
+            
+            int ret = SSLInterop.SSL_read_ex(_ssl, bufPtr, (UIntPtr)buf.Length, readbytesPtr);
+            
+            int readBytes = (int)Marshal.ReadIntPtr(readbytesPtr);
+            Marshal.FreeHGlobal(readbytesPtr);
+            
+            if (ret != 0)
+            {
+                Marshal.Copy(bufPtr, buf, 0, readBytes);
+            }
+
+            Marshal.FreeHGlobal(bufPtr);
+
+            if (ret == 0)
+            {
+                throw new InteropException("Failed to read data from SSL");
+            }
+
+            return readBytes;
         }
 
         /// <summary>
@@ -470,27 +506,9 @@ namespace OpenSSLWebClient
         /// <exception cref="InteropException">Thrown on SSL_read_ex failure</exception>
         public string ReadString()
         {
-            int bufferSize = 4096;
-            IntPtr readbytesPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UIntPtr)));
-            Marshal.WriteIntPtr(readbytesPtr, IntPtr.Zero);
-            IntPtr buf = Marshal.AllocHGlobal(bufferSize);
-            int ret = SSLInterop.SSL_read_ex(_ssl, buf, (UIntPtr)bufferSize, readbytesPtr);
-            if (ret == 0)
-            {
-                Cleanup();
-                throw new InteropException("Failed to read data from SSL");
-            }
-
-            int readbytes = (int)Marshal.ReadIntPtr(readbytesPtr);
-            string readstring = Marshal.PtrToStringAnsi(buf, readbytes);
-            Cleanup();
-            return readstring;
-
-            void Cleanup()
-            {
-                Marshal.FreeHGlobal(readbytesPtr);
-                Marshal.FreeHGlobal(buf);
-            }
+            byte[] buf = new byte[4098];
+            int readbytes = Read(ref buf);
+            return Encoding.ASCII.GetString(buf, 0, readbytes);
         }
 
         /// <inheritdoc/>
@@ -508,10 +526,7 @@ namespace OpenSSLWebClient
             {
                 if (disposing)
                 {
-                    if (_bio != null && (_bio.Pointer == _rbio || _bio.Pointer == _wbio))
-                    {
-                        _bio.Dispose();
-                    }
+                    _bio?.Dispose();
                 }
 
                 Shutdown();
