@@ -190,6 +190,21 @@
         public const int SSL_CTRL_GET_VERIFY_CERT_STORE = 137;
         public const int SSL_CTRL_GET_CHAIN_CERT_STORE = 138;
 
+        /* SSL Error codes from openssl/ssl.h */
+        public const int SSL_ERROR_NONE = 0;
+        public const int SSL_ERROR_SSL = 1;
+        public const int SSL_ERROR_WANT_READ = 2;
+        public const int SSL_ERROR_WANT_WRITE = 3;
+        public const int SSL_ERROR_WANT_X509_LOOKUP = 4;
+        public const int SSL_ERROR_SYSCALL = 5;
+        public const int SSL_ERROR_ZERO_RETURN = 6;
+        public const int SSL_ERROR_WANT_CONNECT = 7;
+        public const int SSL_ERROR_WANT_ACCEPT = 8;
+        public const int SSL_ERROR_WANT_ASYNC = 9;
+        public const int SSL_ERROR_WANT_ASYNC_JOB = 10;
+        public const int SSL_ERROR_WANT_CLIENT_HELLO_CB = 11;
+        public const int SSL_ERROR_WANT_RETRY_VERIFY = 12;
+
         /* SSL Verify options from openssl/ssl.h */
         public const int SSL_VERIFY_NONE = 0x00;
         public const int SSL_VERIFY_PEER = 0x01;

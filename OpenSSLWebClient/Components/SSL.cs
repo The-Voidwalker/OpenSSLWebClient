@@ -459,13 +459,19 @@ namespace OpenSSLWebClient.Components
             Marshal.FreeHGlobal(written);
             if (ret == 0)
             {
-                throw new InteropException("Failed to write to SSL\nSSL Error code "
-                    + SSLInterop.SSL_get_error(_ssl, ret)
-                    + "\n" + ErrorsInterop.GetErrorString());
+                int errorCode = SSLInterop.SSL_get_error(_ssl, ret);
+                throw new InteropException("Failed to write to SSL", "ssl", errorCode);
             }
             return readBytes;
         }
 
+        /// <summary>
+        /// Reads bytes into the provided buffer.
+        /// </summary>
+        /// <param name="buf">A span of bytes to write into.</param>
+        /// <returns>Number of bytes read as an integer.</returns>
+        /// <exception cref="ArgumentException">Thrown when buf is null or of length 0</exception>
+        /// <exception cref="InteropException">Thrown on SSL failure, error details are collected and attached to the Exception object</exception>
         public int Read(ref byte[] buf)
         {
             if (buf == null || buf.Length == 0)
@@ -492,17 +498,18 @@ namespace OpenSSLWebClient.Components
 
             if (ret == 0)
             {
-                throw new InteropException("Failed to read data from SSL");
+                int errorCode = SSLInterop.SSL_get_error(_ssl, ret);
+                throw new InteropException("Failed to read data from SSL", "ssl", errorCode);
             }
 
             return readBytes;
         }
 
         /// <summary>
-        /// Reads up to 4096 bytes from the peer and returns the string an ANSI format.
+        /// Reads up to 4096 bytes from the peer and returns the ASCII decoded string.
         /// </summary>
         /// <remarks>SSL_read_ex is not guaranteed to produce a legible string.</remarks>
-        /// <returns>Raw data from SSL_read_ex converted to a string using <see cref="Marshal.PtrToStringAnsi(IntPtr)"/></returns>
+        /// <returns>Raw data from SSL_read_ex converted to a string using <see cref="Encoding.ASCII"/></returns>
         /// <exception cref="InteropException">Thrown on SSL_read_ex failure</exception>
         public string ReadString()
         {
