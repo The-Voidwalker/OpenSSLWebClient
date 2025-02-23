@@ -257,6 +257,26 @@ namespace OpenSSLWebClient.Components
         /// <returns></returns>
         [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
         public static extern int SSL_set1_host(IntPtr ssl, string hostname);
+
+        /// <summary>
+        /// Received TCP records that have been processed and ready to be read are stored in a buffer.
+        /// Calling this method before <c>SSL_read</c> will help prevent accidentally blocking on a read with no data.
+        /// See also: <see cref="https://docs.openssl.org/3.4/man3/SSL_pending/"/>
+        /// </summary>
+        /// <param name="ssl">Pointer to SSL object</param>
+        /// <returns>Number of bytes buffered and ready for <c>SSL_read</c></returns>
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SSL_pending(IntPtr ssl);
+
+        /// <summary>
+        /// Received TCP records that have been processed and ready to be read are stored in a buffer.
+        /// Calling this method before <c>SSL_read</c> will help prevent accidentally blocking on a read with no data.
+        /// See also: <see cref="https://docs.openssl.org/3.4/man3/SSL_pending/"/>
+        /// </summary>
+        /// <param name="ssl">Pointer to SSL object</param>
+        /// <returns>1 if SSL has pending records ready to read, 0 if not</returns>
+        [DllImport("libssl-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        public static extern int SSL_has_pending(IntPtr ssl);
     }
 
     /// <summary>
@@ -296,6 +316,10 @@ namespace OpenSSLWebClient.Components
         /// but this behavior is not guranteed.
         /// </remarks>
         public bool IsReady => _ssl != null && _ssl != IntPtr.Zero;
+        /// <summary>
+        /// Returns true if SSL connection has buffered bytes ready to be read.
+        /// </summary>
+        public bool HasPending => IsReady && SSLInterop.SSL_has_pending(_ssl) > 0;
 
         public readonly string hostname;
         public readonly string port;
@@ -468,6 +492,7 @@ namespace OpenSSLWebClient.Components
         /// <summary>
         /// Reads bytes into the provided buffer.
         /// </summary>
+        /// <remarks>If no pending data is available to be read, this method will immediately return 0.</remarks>
         /// <param name="buf">A span of bytes to write into.</param>
         /// <returns>Number of bytes read as an integer.</returns>
         /// <exception cref="ArgumentException">Thrown when buf is null or of length 0</exception>
@@ -479,6 +504,11 @@ namespace OpenSSLWebClient.Components
                 throw new ArgumentException("buf must be non null and have a length greater than zero.");
             }
             
+            if (!HasPending)
+            {
+                return 0;
+            }
+
             IntPtr readbytesPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UIntPtr)));
             Marshal.WriteIntPtr(readbytesPtr, IntPtr.Zero);
             
