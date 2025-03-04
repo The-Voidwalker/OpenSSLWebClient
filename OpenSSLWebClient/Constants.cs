@@ -1,4 +1,6 @@
-﻿namespace OpenSSLWebClient
+﻿using System;
+
+namespace OpenSSLWebClient
 {
     /// <summary>Constants from openssl and linux header files used in calls</summary>
     public class Constants
@@ -221,5 +223,21 @@
 
         /* X509 Verification flags from openssl/x509_vfy.h */
         public const int X509_V_OK = 0;
+    }
+
+    [Flags]
+    public enum SslVerify
+    {
+        None = Constants.SSL_VERIFY_NONE,
+        Peer = Constants.SSL_VERIFY_PEER,
+        FailIfNoPeerCert = Constants.SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+        ClientOnce = Constants.SSL_VERIFY_CLIENT_ONCE,
+        PostHandshake = Constants.SSL_VERIFY_POST_HANDSHAKE,
+    }
+
+    public enum ProtocolVersion
+    {
+        Tls1_2 = Constants.TLS1_2_VERSION,
+        Tls1_3 = Constants.TLS1_3_VERSION,
     }
 }

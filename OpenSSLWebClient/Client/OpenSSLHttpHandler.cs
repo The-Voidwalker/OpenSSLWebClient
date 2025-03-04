@@ -78,7 +78,6 @@ namespace OpenSSLWebClient.Client
                 // TryReadBlock returns a block after encountering \r\n\r\n, which indicates the end of the headers
                 string headers = TryReadBlock(ssl);
 
-                // TODO: validate we've got enough for the status line before grabbing it like this!
                 int newLineIndex = headers.IndexOf('\n');
                 // If we're missing the index, we'll send an empty line to ParseStatusLine, which will throw an exception for us
                 string statusLine = headers.Substring(0, newLineIndex < 0 ? 0 : newLineIndex);
@@ -108,7 +107,7 @@ namespace OpenSSLWebClient.Client
                          * When reading for a new chunk, we start by reading a block at least 1 byte long.
                          * TryReadBlock is pretty much guranteed to return a block larger than the maxRead,
                          * up to 4098 bytes larger! Though, in practice it seems more limited to the TCP
-                         * segment size. Since the SSL connection isn't being reused here,
+                         * record size. Since the SSL connection isn't being reused here,
                          * it is relatively safe to assume the extra content is a part of the message.
                          * Chunk encoded blocks come in the format of "AAAA\r\nContent of 0xAAAA bytes\r\n"
                          * The last chunk should be "0\r\n"
