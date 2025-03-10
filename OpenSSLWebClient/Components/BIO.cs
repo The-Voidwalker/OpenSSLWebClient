@@ -166,6 +166,7 @@ namespace OpenSSLWebClient.Components
                     Free();
                 }
                 _bio = IntPtr.Zero;
+                _fd = -1;
                 _disposed = true;
             }
         }

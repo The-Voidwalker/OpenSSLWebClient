@@ -405,8 +405,8 @@ namespace OpenSSLWebClient.Components
             {
                 if (disposing)
                 {
-                    _wbio.Dispose();
-                    _rbio.Dispose();
+                    _wbio?.Dispose();
+                    _rbio?.Dispose();
                 }
                 Free();
                 // CTX can be reused by other SSL objects, so we cannot Dispose it.
