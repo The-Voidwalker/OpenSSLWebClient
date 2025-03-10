@@ -6,193 +6,207 @@ using System.Text;
 
 namespace OpenSSLWebClient.Components
 {
+    [Flags]
+    public enum SslVerify
+    {
+        None = Constants.SSL_VERIFY_NONE,
+        Peer = Constants.SSL_VERIFY_PEER,
+        FailIfNoPeerCert = Constants.SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
+        ClientOnce = Constants.SSL_VERIFY_CLIENT_ONCE,
+        PostHandshake = Constants.SSL_VERIFY_POST_HANDSHAKE,
+    }
+
+    public enum SSLMethod
+    {
+        TLS,
+        DTLS,
+        QUIC,
+        QUIC_thread
+    }
+
     /// <summary>
-    /// Provides the managed representation of a SSL c object.
+    /// Managed representation of openssl's SSL_CTX c object.
     /// </summary>
-    /// <remarks>The current version only support for TLS 1.2 and higher.</remarks>
-    public class SSL : IDisposable
+    public class SSLContext : IDisposable
     {
         private IntPtr _ctx;
-        private IntPtr _ssl;
-        private IntPtr _rbio;
-        private IntPtr _wbio;
-        private BIO _bio;
         private bool _disposed = false;
 
-        public IntPtr CTXPointer => _ctx;
-        public IntPtr Pointer => _ssl;
+        public IntPtr Pointer => _ctx;
+        public ProtocolVersion MaxProtoVersion => (ProtocolVersion)SSLInterop.SSL_CTX_get_max_proto_version(_ctx);
+        public ProtocolVersion MinProtoVersion => (ProtocolVersion)SSLInterop.SSL_CTX_get_min_proto_version(_ctx);
+
         /// <summary>
-        /// Validates that both read and write BIOs are configured and nonzero.
-        /// Does not check the validity of the unmanaged object.
+        /// Creates a new SSL_CTX targeting the specified method.
         /// </summary>
-        public bool HasBIOs => _rbio != null
-                               && _wbio != null
-                               && _rbio != IntPtr.Zero
-                               && _wbio != IntPtr.Zero;
+        /// <param name="method"></param>
+        /// <exception cref="ArgumentException"></exception>
+        public SSLContext(SSLMethod method = SSLMethod.TLS)
+        {
+            IntPtr methodPtr;
+            switch (method)
+            {
+                case SSLMethod.TLS:
+                    methodPtr = SSLInterop.TLS_client_method();
+                    break;
+                case SSLMethod.DTLS:
+                    methodPtr = SSLInterop.DTLS_client_method();
+                    break;
+                case SSLMethod.QUIC:
+                    methodPtr = SSLInterop.OSSL_QUIC_client_method();
+                    break;
+                case SSLMethod.QUIC_thread:
+                    methodPtr = SSLInterop.OSSL_QUIC_client_thread_method();
+                    break;
+                default:
+                    throw new ArgumentException("Unsupported SSLMethod " + method);
+            }
+            _ctx = SSLInterop.SSL_CTX_new(methodPtr);
+        }
+
         /// <summary>
-        /// Validates that the pointer to the unmanaged CTX object is configured and nonzero.
-        /// Does not check the validity of the unmanaged object.
-        /// </summary>
-        public bool HasCTX => _ctx != null && _ctx != IntPtr.Zero;
-        /// <summary>
-        /// Validates that the pointer to the unmanaged SSL object is configured and nonzero.
-        /// Does not check the validity of the unmanaged object.
+        /// Configures the CAfile and CApath used for validating certificates.
+        /// For additional information on CAfile and CApath, review the linked openssl documentation:
+        /// <see href="https://docs.openssl.org/3.4/man3/SSL_CTX_load_verify_locations"/>
         /// </summary>
         /// <remarks>
-        /// This should imply that both <see cref="HasBIOs"/> and <see cref="HasCTX"/> return true,
-        /// but this behavior is not guranteed.
+        /// Failure occurs when CAfile and CApath are both null, and additionally when processing one of those locations fails.
         /// </remarks>
-        public bool IsReady => _ssl != null && _ssl != IntPtr.Zero;
-        /// <summary>
-        /// Returns true if SSL connection has buffered bytes ready to be read.
-        /// </summary>
-        public bool HasPending => IsReady && SSLInterop.SSL_has_pending(_ssl) > 0;
-
-        public readonly string hostname;
-        public readonly string port;
-
-        /// <summary>
-        /// Create a new SSL object using only a hostname and port.
-        /// A <see cref="BIO"/> object will be automatically created.
-        /// </summary>
-        /// <param name="hostname">Hostname of remote peer</param>
-        /// <param name="port">Port of remote service</param>
-        public SSL(string hostname, string port)
+        /// <param name="caFile">Path to a PEM encoded file containing one or more certificates</param>
+        /// <param name="caPath">Path to a directory containing one or more individually packaged certificates</param>
+        /// <returns>true on successful operation, false on failure</returns>
+        public bool LoadVerifyLocations(string caFile, string caPath)
         {
-            this.hostname = hostname;
-            this.port = port;
-
-            CreateSSL(); // Also creates missing BIOs and CTX
+            return SSLInterop.SSL_CTX_load_verify_locations(_ctx, caFile, caPath) == 1;
         }
 
         /// <summary>
-        /// Creates a new <see cref="BIO"/> using the stored hostname and port.
+        /// Sets SSL CTX object to use default locations for CA certificates.
+        /// Wrapper for <see href="https://docs.openssl.org/3.4/man3/SSL_CTX_load_verify_locations/"/>
         /// </summary>
-        /// <remarks>This should only be called during object creation.</remarks>
-        protected void CreateBIO()
+        /// <returns>true on success, false if an error was encountered</returns>
+        public bool SetDefaultVerifyPaths()
         {
-            _bio = new BIO(hostname, port);
-            _rbio = _bio.Pointer;
-            _wbio = _bio.Pointer;
+            return SSLInterop.SSL_CTX_set_default_verify_paths(_ctx) == 1;
         }
 
         /// <summary>
-        /// Creates and performs initial configuration of SSL CTX.
+        /// Configures maximum protocol version that can be used in a connection.
         /// </summary>
-        /// <remarks>This should only be called during object creation.</remarks>
-        /// <exception cref="InteropException"></exception>
-        protected void CreateCTX()
+        /// <param name="version">Maxium protocol version</param>
+        /// <returns>true on success, false if an error was encountered</returns>
+        public bool SetMaxProtoVersion(ProtocolVersion version)
         {
-            _ctx = SSLInterop.SSL_CTX_new(SSLInterop.TLS_client_method());
-            if (!HasCTX)
-            {
-                throw new InteropException("Could not create SSL CTX");
-            }
-
-            SSLInterop.SSL_CTX_set_verify(_ctx, Constants.SSL_VERIFY_PEER, IntPtr.Zero);
-
-            string[] verifyLocations = CertificateStore.VerificationLocations();
-            if (SSLInterop.SSL_CTX_load_verify_locations(_ctx, verifyLocations[0], verifyLocations[1]) == 0)
-            {
-                throw new InteropException("Failed to load certificate verify locations " + verifyLocations);
-            }
-
-            if (SSLInterop.SSL_CTX_set_min_proto_version(_ctx, Constants.TLS1_2_VERSION) == 0)
-            {
-                throw new InteropException("Failed to set minimum TLS version");
-            }
+            return SSLInterop.SSL_CTX_set_max_proto_version(_ctx, (int)version) == 1;
         }
 
         /// <summary>
-        /// Creates and configures a SSL object.
+        /// Configures minimum protocol version that can be used in a connection.
         /// </summary>
-        /// <param name="createMissingCTX">
-        /// When true, function will call <see cref="CreateCTX"/> if one is currently missing.
-        /// Otherwise an <see cref="InvalidOperationException"/> is thrown.
-        /// </param>
-        /// <param name="createMissingBIOs">
-        /// When true, function will call <see cref="CreateBIO"/> if _rbio and _wbio are missing.
-        /// Otherwise an <see cref="InvalidOperationException"/> is thrown.
-        /// </param>
-        /// <exception cref="InvalidOperationException">Thrown if no CTX is found</exception>
-        /// <exception cref="InteropException"></exception>
-        protected void CreateSSL(bool createMissingCTX = true, bool createMissingBIOs = true)
+        /// <param name="version">Minimum protocol version</param>
+        /// <returns>true on success, false if an error was encountered</returns>
+        public bool SetMinProtoVersion(ProtocolVersion version)
         {
-            if (!HasCTX)
-            {
-                if (createMissingCTX)
-                {
-                    CreateCTX();
-                }
-                else
-                {
-                    throw new InvalidOperationException("Cannot call CreateSSL without an existing CTX!");
-                }
-            }
-            if (!HasBIOs)
-            {
-                if (createMissingBIOs)
-                {
-                    CreateBIO();
-                }
-                else
-                {
-                    throw new InvalidOperationException("Cannot call CreateSSL without configuring BIOs!");
-                }
-            }
-
-            _ssl = SSLInterop.SSL_new(_ctx);
-            if (_ssl == IntPtr.Zero)
-            {
-                throw new InteropException("Failed to create SSL object");
-            }
-
-            SSLInterop.SSL_set_bio(_ssl, _rbio, _wbio);
-
-            if (SSLInterop.SSL_set_tlsext_host_name(_ssl, hostname) == 0)
-            {
-                throw new InteropException("Failed to set TLS hostname extension");
-            }
-
-            if (SSLInterop.SSL_set1_host(_ssl, hostname) == 0)
-            {
-                throw new InteropException("Failed to set hostname used in SSL certificate verification");
-            }
+            return SSLInterop.SSL_CTX_set_min_proto_version(_ctx, (int)version) == 1;
         }
 
-        protected void FreeCTX()
+        /// <summary>
+        /// Set verification level for SSL objects created by this context.
+        /// <see href="https://docs.openssl.org/3.4/man3/SSL_CTX_set_verify/"/>
+        /// </summary>
+        /// <remarks>
+        /// For clients, any combination of flags not equivalent to <c>SslVerify.None</c>
+        /// is treated the same as <c>SslVerify.Peer</c>. For more details, see
+        /// <see href="https://docs.openssl.org/3.4/man3/SSL_CTX_set_verify/#bugs"/>
+        /// </remarks>
+        /// <param name="verify">Verification level as a combination of <see cref="SslVerify"/> flags</param>
+        public void SetVerify(SslVerify verify)
+        {
+            SSLInterop.SSL_CTX_set_verify(_ctx, (int)verify, IntPtr.Zero);
+        }
+
+        /// <summary>
+        /// Frees unmanaged resources. Call <see cref="Dispose"/> instead.
+        /// </summary>
+        private void Free()
         {
             SSLInterop.SSL_CTX_free(_ctx);
-            _ctx = IntPtr.Zero;
         }
 
-        protected void FreeSSL()
+        public void Dispose()
         {
-            SSLInterop.SSL_free(_ssl);
-            _ssl = IntPtr.Zero;
+            Dispose(disposing: true);
+            GC.SuppressFinalize(this);
         }
 
-        public void Connect()
+        protected virtual void Dispose(bool disposing)
         {
-            if (!IsReady)
+            if (!_disposed)
             {
-                throw new InvalidOperationException("SSL object improperly created!");
-            }
-
-            if (SSLInterop.SSL_connect(_ssl) == 0)
-            {
-                throw new InteropException("Failed to connect.");
+                if (disposing)
+                {
+                    // No current managed resources to dispose.
+                }
+                Free();
+                _ctx = IntPtr.Zero;
+                _disposed = true;
             }
         }
+
+        ~SSLContext()
+        {
+            Dispose(disposing: false);
+        }
+    }
+
+    /// <summary>
+    /// Managed representation of openssl's SSL c object.
+    /// </summary>
+    public class SSL : IDisposable
+    {
+        private SSLContext _ctx;
+        /// <summary>Pointer to unmanaged object.</summary>
+        private IntPtr _ssl;
+        /// <summary>Read BIO.</summary>
+        private BIO _rbio;
+        /// <summary>Write BIO.</summary>
+        private BIO _wbio;
+        private bool _disposed = false;
+        private bool _closed = false;
+        private bool _connected = false;
+
+        /// <inheritdoc cref="_ssl"/>
+        public IntPtr Pointer => _ssl;
+        public bool HasBios => _rbio != null && _wbio != null;
+        // TODO: unneeded? Provide better check elsewhere?
+        public bool IsReady => !_disposed && !_closed
+            && _ssl != null && _ssl != IntPtr.Zero
+            && HasBios;
+        /// <summary>Number of bytes ready to be read.</summary>
+        public int Pending
+        {
+            get
+            {
+                ThrowBadState(hasBios: true, isConnected: true);
+                return SSLInterop.SSL_pending(_ssl);
+            }
+        }
+        /// <summary>True when bytes are ready to be read.</summary>
+        public bool HasPending => Pending > 0;
 
         /// <summary>
-        /// Closes SSL connection and frees underlying SSL and SSL CTX objects.
+        /// Creates a new SSL object using the provided context.
         /// </summary>
-        public void Shutdown()
+        /// <param name="ctx"></param>
+        /// <exception cref="InteropException"></exception>
+        public SSL(SSLContext ctx)
         {
-            SSLInterop.SSL_shutdown(_ssl);
-            FreeSSL();
-            FreeCTX();
+            _ctx = ctx;
+            _ssl = SSLInterop.SSL_new(_ctx.Pointer);
+            if (_ssl == IntPtr.Zero)
+            {
+                throw new InteropException("Failed to create unmanaged SSL object");
+            }
         }
 
         /// <summary>
@@ -203,6 +217,7 @@ namespace OpenSSLWebClient.Components
         /// <returns>Number of bytes written to the peer.</returns>
         public int Write(string s)
         {
+            ThrowBadState(hasBios: true, isConnected: true);
             IntPtr written = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UIntPtr)));
             Marshal.WriteIntPtr(written, IntPtr.Zero);
             int ret = SSLInterop.SSL_write_ex(_ssl, s, (UIntPtr)s.Length, written);
@@ -211,6 +226,10 @@ namespace OpenSSLWebClient.Components
             if (ret == 0)
             {
                 int errorCode = SSLInterop.SSL_get_error(_ssl, ret);
+                if (errorCode == Constants.SSL_ERROR_ZERO_RETURN)
+                {
+                    _closed = true;
+                }
                 throw new InteropException("Failed to write to SSL", "ssl", errorCode);
             }
             return readBytes;
@@ -230,7 +249,9 @@ namespace OpenSSLWebClient.Components
             {
                 throw new ArgumentException("buf must be non null and have a length greater than zero.");
             }
-            
+
+            ThrowBadState(hasBios: true, isConnected: true);
+
             if (!HasPending)
             {
                 return 0;
@@ -238,14 +259,14 @@ namespace OpenSSLWebClient.Components
 
             IntPtr readbytesPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UIntPtr)));
             Marshal.WriteIntPtr(readbytesPtr, IntPtr.Zero);
-            
+
             IntPtr bufPtr = Marshal.AllocHGlobal(Marshal.SizeOf(buf[0]) * buf.Length);
-            
+
             int ret = SSLInterop.SSL_read_ex(_ssl, bufPtr, (UIntPtr)buf.Length, readbytesPtr);
-            
+
             int readBytes = (int)Marshal.ReadIntPtr(readbytesPtr);
             Marshal.FreeHGlobal(readbytesPtr);
-            
+
             if (ret != 0)
             {
                 Marshal.Copy(bufPtr, buf, 0, readBytes);
@@ -256,6 +277,10 @@ namespace OpenSSLWebClient.Components
             if (ret == 0)
             {
                 int errorCode = SSLInterop.SSL_get_error(_ssl, ret);
+                if (errorCode == Constants.SSL_ERROR_ZERO_RETURN)
+                {
+                    _closed = true;
+                }
                 throw new InteropException("Failed to read data from SSL", "ssl", errorCode);
             }
 
@@ -263,39 +288,131 @@ namespace OpenSSLWebClient.Components
         }
 
         /// <summary>
-        /// Reads up to 4096 bytes from the peer and returns the ASCII decoded string.
+        /// Initiate the TLS/SSL handshake with the remote server.
         /// </summary>
-        /// <remarks>SSL_read_ex is not guaranteed to produce a legible string.</remarks>
-        /// <returns>Raw data from SSL_read_ex converted to a string using <see cref="Encoding.ASCII"/></returns>
-        /// <exception cref="InteropException">Thrown on SSL_read_ex failure</exception>
-        public string ReadString()
+        /// <exception cref="InvalidOperationException">Thrown when BIOs are not yet configured</exception>
+        /// <exception cref="InteropException"></exception>
+        public void Connect()
         {
-            byte[] buf = new byte[4098];
-            int readbytes = Read(ref buf);
-            return Encoding.ASCII.GetString(buf, 0, readbytes);
+            ThrowBadState(hasBios: true);
+            int ret = SSLInterop.SSL_connect(_ssl);
+            if (ret != 1)
+            {
+                int code = SSLInterop.SSL_get_error(_ssl, ret);
+                if (code == Constants.SSL_ERROR_ZERO_RETURN)
+                {
+                    _closed = true;
+                }
+
+                throw new InteropException("Could not connect to remote", "ssl", code);
+            }
+            _connected = true;
         }
 
-        /// <inheritdoc/>
+        /// <summary>
+        /// Configures the hostname that the peer's certificate must contain in order for the certificate to be validated.
+        /// <see href="https://docs.openssl.org/3.4/man3/SSL_set1_host/"/>
+        /// </summary>
+        /// <param name="hostname">Expected hostname of server</param>
+        /// <returns>true if successful, false on failure</returns>
+        public bool Set1Host(string hostname)
+        {
+            return SSLInterop.SSL_set1_host(_ssl, hostname) == 1;
+        }
+
+        /// <summary>Configures BIO(s) used for i/o operations.</summary>
+        /// <remarks><c>readBio</c> and <c>writeBio</c> may be the same.</remarks>
+        /// <param name="readBio">BIO used for reading</param>
+        /// <param name="writeBio">BIO used for writing</param>
+        /// <exception cref="InvalidOperationException">Thrown when BIOs are already set</exception>
+        public void SetBio(BIO readBio, BIO writeBio)
+        {
+            ThrowBadState();
+            _rbio = readBio;
+            _wbio = writeBio;
+            SSLInterop.SSL_set_bio(_ssl, _rbio.Pointer, _wbio.Pointer);
+        }
+
+        /// <summary>
+        /// Congigures the server name indication ClientHello extension to contain the specified name.
+        /// </summary>
+        /// <remarks>
+        /// If improperly configured, the server may reject the handshake.
+        /// </remarks>
+        /// <param name="hostname">Hostname of remote server</param>
+        /// <returns>true on success, false on failure</returns>
+        public bool SetTlsExtHostName(string hostname)
+        {
+            return SSLInterop.SSL_set_tlsext_host_name(_ssl, hostname) == 1;
+        }
+
+        /// <inheritdoc cref="SSLInterop.SSL_shutdown(IntPtr)"/>
+        public int Shutdown()
+        {
+            ThrowBadState(hasBios: true, isConnected: true);
+            _closed = true;
+            return SSLInterop.SSL_shutdown(_ssl);
+        }
+
+        /// <summary>Free unmanaged resources. Call <see cref="Dispose"/> instead.</summary>
+        private void Free()
+        {
+            SSLInterop.SSL_free(_ssl);
+        }
+
+        /// <summary>
+        /// Throws an exception if the objects state does not match the desired state.
+        /// The boolean parameters represent the desired state, for example
+        /// <c>hasBios: true</c> throw an exception if BIOs are missing, but
+        /// <c>hasBios: false</c> throws an exception if BIOs are present.
+        /// </summary>
+        /// <exception cref="ObjectDisposedException"></exception>
+        /// <exception cref="InvalidOperationException"></exception>
+        private void ThrowBadState(
+            [CallerMemberName] string callerName = "",
+            bool hasBios = false,
+            bool isConnected = false,
+            bool isClosed = false
+            )
+        {
+            if (_disposed)
+            {
+                throw new ObjectDisposedException(GetType().Name);
+            }
+            if (hasBios != HasBios)
+            {
+                throw new InvalidOperationException("BIOs must" + (hasBios ? " " : " not ") + "be configured before calling " + callerName);
+            }
+            if (isConnected != _connected)
+            {
+                throw new InvalidOperationException("Connection must" + (isConnected ? " " : " not ") + "be establised before calling " + callerName);
+            }
+            if (isClosed != _closed)
+            {
+                throw new InvalidOperationException("Connection must" + (isConnected ? " " : " not ") + "be closed before calling " + callerName);
+            }
+        }
+
         public void Dispose()
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
-        /// <inheritdoc cref="Dispose"/>
-        /// <param name="disposing">True when disposing, false during finalization.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    _bio?.Dispose();
+                    _wbio.Dispose();
+                    _rbio.Dispose();
                 }
-
-                Shutdown();
-                _ctx = _ssl = _rbio = _wbio = IntPtr.Zero;
-                _bio = null;
+                Free();
+                // CTX can be reused by other SSL objects, so we cannot Dispose it.
+                _ctx = null;
+                _wbio = _rbio = null;
+                _ssl = IntPtr.Zero;
                 _disposed = true;
             }
         }

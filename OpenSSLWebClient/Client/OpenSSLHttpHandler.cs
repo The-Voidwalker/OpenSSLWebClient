@@ -50,117 +50,121 @@ namespace OpenSSLWebClient.Client
 
             // TODO: SSL object should be managed in a way that lets us reuse it safely
             // This is technically thread safe, but will quickly exhaust available ports in the event of multiple requests
-            using (SSL ssl = new SSL(request.RequestUri.Host, "443"))
-            {
-                string message = request.Method.Method + " " + request.RequestUri.PathAndQuery
-                    + " HTTP/" + request.Version.Major + "." + request.Version.Minor + "\r\n";
-                foreach (var rheader in request.Headers)
-                {
-                    message += rheader.Key + ":" + string.Join(", ", rheader.Value.ToArray()) + "\r\n";
-                }
+            
+            // Dead code due to breaking SSL changes, will need to implement connection pool and connection classes
+            // working on this again.
 
-                if (request.Content != null)
-                {
-                    foreach (var cheader in request.Content.Headers)
-                    {
-                        message += cheader.Key + ":" + string.Join(", ", cheader.Value.ToArray()) + "\r\n";
-                    }
+            //using (SSL ssl = new SSL(request.RequestUri.Host, "443"))
+            //{
+            //    string message = request.Method.Method + " " + request.RequestUri.PathAndQuery
+            //        + " HTTP/" + request.Version.Major + "." + request.Version.Minor + "\r\n";
+            //    foreach (var rheader in request.Headers)
+            //    {
+            //        message += rheader.Key + ":" + string.Join(", ", rheader.Value.ToArray()) + "\r\n";
+            //    }
 
-                    string content = request.Content.ReadAsStringAsync().Result;
-                    message += content;  // TODO: ensure message ends with \r\n\r\n in this case?
-                }
+            //    if (request.Content != null)
+            //    {
+            //        foreach (var cheader in request.Content.Headers)
+            //        {
+            //            message += cheader.Key + ":" + string.Join(", ", cheader.Value.ToArray()) + "\r\n";
+            //        }
 
-                message += "\r\n";
+            //        string content = request.Content.ReadAsStringAsync().Result;
+            //        message += content;  // TODO: ensure message ends with \r\n\r\n in this case?
+            //    }
 
-                ssl.Connect();
-                ssl.Write(message);
+            //    message += "\r\n";
 
-                // TryReadBlock returns a block after encountering \r\n\r\n, which indicates the end of the headers
-                string headers = TryReadBlock(ssl);
+            //    ssl.Connect();
+            //    ssl.Write(message);
 
-                int newLineIndex = headers.IndexOf('\n');
-                // If we're missing the index, we'll send an empty line to ParseStatusLine, which will throw an exception for us
-                string statusLine = headers.Substring(0, newLineIndex < 0 ? 0 : newLineIndex);
-                headers = headers.Substring(newLineIndex + 1).Trim();
-                ParseStatusLine(statusLine, response);
-                // ParseHeaders adds found headers to response.Headers, but any that are failed to be added are returned separately
-                // We assume these to be content headers that we can add to response.Content after it is created
-                HeaderCollection contentHeaders = ParseHeaders(headers, response);
+            //    // TryReadBlock returns a block after encountering \r\n\r\n, which indicates the end of the headers
+            //    string headers = TryReadBlock(ssl);
 
-                string resp = "";
-                // Check for content based on existence of Content-Type header
-                // TODO: May need different/other check
-                if (contentHeaders.Contains("Content-Type"))
-                {
-                    if (contentHeaders.Contains("ContentLength"))
-                    {
-                        // TODO: verify the end of the block is the end of the content
-                        resp = TryReadBlock(ssl, int.Parse(contentHeaders.GetValues("Content-Length").First()));
-                    }
-                    else if ((bool)response.Headers.TransferEncodingChunked)
-                    {
-                        int nextSize = 1;
-                        string block = "";
-                        bool newBlock = true;
+            //    int newLineIndex = headers.IndexOf('\n');
+            //    // If we're missing the index, we'll send an empty line to ParseStatusLine, which will throw an exception for us
+            //    string statusLine = headers.Substring(0, newLineIndex < 0 ? 0 : newLineIndex);
+            //    headers = headers.Substring(newLineIndex + 1).Trim();
+            //    ParseStatusLine(statusLine, response);
+            //    // ParseHeaders adds found headers to response.Headers, but any that are failed to be added are returned separately
+            //    // We assume these to be content headers that we can add to response.Content after it is created
+            //    HeaderCollection contentHeaders = ParseHeaders(headers, response);
 
-                        /*
-                         * When reading for a new chunk, we start by reading a block at least 1 byte long.
-                         * TryReadBlock is pretty much guranteed to return a block larger than the maxRead,
-                         * up to 4098 bytes larger! Though, in practice it seems more limited to the TCP
-                         * record size. Since the SSL connection isn't being reused here,
-                         * it is relatively safe to assume the extra content is a part of the message.
-                         * Chunk encoded blocks come in the format of "AAAA\r\nContent of 0xAAAA bytes\r\n"
-                         * The last chunk should be "0\r\n"
-                         */
-                        while (nextSize > 0)
-                        {
-                            block = TryReadBlock(ssl, nextSize);
-                            if (block.Length < nextSize)
-                            {
-                                resp += block;
-                                nextSize -= block.Length;
-                            }
-                            else if (block.Length > nextSize)
-                            {
-                                // nextSize is used to find the index of the next chunk
-                                if (newBlock)
-                                {
-                                    nextSize = 0;
-                                    newBlock = false;
-                                }
-                                resp += block.Substring(0, nextSize);
-                                int nextLine = block.IndexOf('\n', nextSize);
-                                if (nextLine > 0 && nextLine < block.Length - 1)
-                                {
-                                    nextSize = int.Parse(block.Substring(nextSize, nextLine - nextSize).Trim(), System.Globalization.NumberStyles.HexNumber);
-                                    block = block.Substring(nextLine).TrimStart();
-                                    resp += block;
-                                    nextSize -= block.Length;
-                                }
-                                else
-                                {
-                                    nextSize = 1;
-                                    newBlock = true;
-                                }
-                            }
-                        }
-                    }
-                    else
-                    {
-                        // TODO: misleading, we unpack based on Content-Length or Transfer-Encoding: chunked
-                        throw new HttpRequestException("Invalid response, don't know how to unpack content of type "
-                            + string.Join(", ", contentHeaders.GetValues("Content-Type").ToArray()));
-                    }
+            //    string resp = "";
+            //    // Check for content based on existence of Content-Type header
+            //    // TODO: May need different/other check
+            //    if (contentHeaders.Contains("Content-Type"))
+            //    {
+            //        if (contentHeaders.Contains("ContentLength"))
+            //        {
+            //            // TODO: verify the end of the block is the end of the content
+            //            resp = TryReadBlock(ssl, int.Parse(contentHeaders.GetValues("Content-Length").First()));
+            //        }
+            //        else if ((bool)response.Headers.TransferEncodingChunked)
+            //        {
+            //            int nextSize = 1;
+            //            string block = "";
+            //            bool newBlock = true;
 
-                    // TODO: can we create an object for content earlier? Perhaps StreamContent pointed at a stream we write to above?
-                    ByteArrayContent responseContent = new ByteArrayContent(Encoding.UTF8.GetBytes(resp));
-                    foreach (var respContentHeader in contentHeaders)
-                    {
-                        responseContent.Headers.Add(respContentHeader.Key, respContentHeader.Value);
-                    }
-                    response.Content = responseContent;
-                }
-            }
+            //            /*
+            //             * When reading for a new chunk, we start by reading a block at least 1 byte long.
+            //             * TryReadBlock is pretty much guranteed to return a block larger than the maxRead,
+            //             * up to 4098 bytes larger! Though, in practice it seems more limited to the TCP
+            //             * record size. Since the SSL connection isn't being reused here,
+            //             * it is relatively safe to assume the extra content is a part of the message.
+            //             * Chunk encoded blocks come in the format of "AAAA\r\nContent of 0xAAAA bytes\r\n"
+            //             * The last chunk should be "0\r\n"
+            //             */
+            //            while (nextSize > 0)
+            //            {
+            //                block = TryReadBlock(ssl, nextSize);
+            //                if (block.Length < nextSize)
+            //                {
+            //                    resp += block;
+            //                    nextSize -= block.Length;
+            //                }
+            //                else if (block.Length > nextSize)
+            //                {
+            //                    // nextSize is used to find the index of the next chunk
+            //                    if (newBlock)
+            //                    {
+            //                        nextSize = 0;
+            //                        newBlock = false;
+            //                    }
+            //                    resp += block.Substring(0, nextSize);
+            //                    int nextLine = block.IndexOf('\n', nextSize);
+            //                    if (nextLine > 0 && nextLine < block.Length - 1)
+            //                    {
+            //                        nextSize = int.Parse(block.Substring(nextSize, nextLine - nextSize).Trim(), System.Globalization.NumberStyles.HexNumber);
+            //                        block = block.Substring(nextLine).TrimStart();
+            //                        resp += block;
+            //                        nextSize -= block.Length;
+            //                    }
+            //                    else
+            //                    {
+            //                        nextSize = 1;
+            //                        newBlock = true;
+            //                    }
+            //                }
+            //            }
+            //        }
+            //        else
+            //        {
+            //            // TODO: misleading, we unpack based on Content-Length or Transfer-Encoding: chunked
+            //            throw new HttpRequestException("Invalid response, don't know how to unpack content of type "
+            //                + string.Join(", ", contentHeaders.GetValues("Content-Type").ToArray()));
+            //        }
+
+            //        // TODO: can we create an object for content earlier? Perhaps StreamContent pointed at a stream we write to above?
+            //        ByteArrayContent responseContent = new ByteArrayContent(Encoding.UTF8.GetBytes(resp));
+            //        foreach (var respContentHeader in contentHeaders)
+            //        {
+            //            responseContent.Headers.Add(respContentHeader.Key, respContentHeader.Value);
+            //        }
+            //        response.Content = responseContent;
+            //    }
+            //}
 
             return Task.FromResult(response);
         }

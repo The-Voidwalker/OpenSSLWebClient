@@ -3,10 +3,14 @@
 namespace OpenSSLWebClient
 {
     /// <summary>Constants from openssl and linux header files used in calls</summary>
-    public class Constants
+    public static class Constants
     {
+        // TODO: these constants are NOT consistent across multiple plaftorms
+        // for example, AF_INET6 is 10 in linux, 24 in openbsd, and 23 in Windows.
+        // Thankfully, AF_UNSPEC and AF_INET are at least consistent across those three.
+        public const int AF_UNSPEC = 0;
         public const int AF_INET = 2;
-        public const int AF_INET6 = 10;
+        //public const int AF_INET6 = 10; // Dangerous, see above
 
         /* Socket types, typically use SOCK_STREAM */
         public const int SOCK_STREAM = 1;
@@ -225,19 +229,16 @@ namespace OpenSSLWebClient
         public const int X509_V_OK = 0;
     }
 
-    [Flags]
-    public enum SslVerify
-    {
-        None = Constants.SSL_VERIFY_NONE,
-        Peer = Constants.SSL_VERIFY_PEER,
-        FailIfNoPeerCert = Constants.SSL_VERIFY_FAIL_IF_NO_PEER_CERT,
-        ClientOnce = Constants.SSL_VERIFY_CLIENT_ONCE,
-        PostHandshake = Constants.SSL_VERIFY_POST_HANDSHAKE,
-    }
-
     public enum ProtocolVersion
     {
         Tls1_2 = Constants.TLS1_2_VERSION,
         Tls1_3 = Constants.TLS1_3_VERSION,
+    }
+
+    public enum SocketType
+    {
+        Any = 0,
+        Stream = Constants.SOCK_STREAM,
+        Dgram = Constants.SOCK_DGRAM,
     }
 }

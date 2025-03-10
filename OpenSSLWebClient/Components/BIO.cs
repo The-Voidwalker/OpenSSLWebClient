@@ -1,135 +1,50 @@
 ﻿using OpenSSLWebClient.Exceptions;
 using System;
+using System.Diagnostics;
 using System.Runtime.InteropServices;
 
 namespace OpenSSLWebClient.Components
 {
+    public enum BioMethod
+    {
+        Socket
+    }
+
     /// <summary>
-    /// Manages representation of BIO (basic I/O) c objects.
+    /// Managed representation of openssl's BIO (basic I/O) c objects.
     /// </summary>
-    /// <remarks>
-    /// This specific implementation is for a BIO object over a TCP stream socket.
-    /// </remarks>
     public class BIO : IDisposable
     {
-        private protected IntPtr _bio;
-        private protected int _socket;
+        private IntPtr _bio;
+        private int _fd = -1;
         private bool _disposed = false;
+        /// <summary>True when attached to an <see cref="SSL"/> object.</summary>
+        /// <remarks>This means the unmanaged object will be freed when <see cref="SSL.Free"/> is called.</remarks>
+        private bool _managed = false;
 
-        public readonly string hostname;
-        public readonly string port;
-
-        /// <summary>
-        /// Pointer to unmanaged BIO object.
-        /// </summary>
+        /// <summary>If the bio is pointed at a valid file descriptor and can likely be used.</summary>
+        public bool HasFD => _fd > -1;
         public IntPtr Pointer => _bio;
-        public bool HasBIO => _bio != IntPtr.Zero;
-        public bool HasSocket => _socket != -1;
-
-        // TODO: disentangle BIO and socket handling
-        public BIO(string hostname, string port)
-        {
-            this.hostname = hostname;
-            this.port = port;
-            _socket = -1;
-            _bio = IntPtr.Zero;
-            CreateSocket();
-            CreateBIO();
-        }
 
         /// <summary>
-        /// Called by constructor. Creates a BIO and attaches it to a socket.
+        /// Gets a socket connected to the specified hostname and port.
         /// </summary>
-        /// <remarks>
-        /// <see cref="CreateSocket"/> MUST be called before this method.
-        /// </remarks>
-        /// <exception cref="InvalidOperationException"></exception>
-        /// <exception cref="InteropException"></exception>
-        protected void CreateBIO()
+        /// <param name="hostname">Hostname of remote</param>
+        /// <param name="port">Port number as a string</param>
+        /// <param name="socketType"></param>
+        /// <returns>File descriptor (or equivalent) for socket as integer. -1 indicates no socket.</returns>
+        // TODO: Add support for choosing address family instead of supplying unspecified directly
+        public static int GetSocket(string hostname, string port, SocketType socketType)
         {
-            if (!HasSocket)
-            {
-                throw new InvalidOperationException("Cannot create a BIO without a socket!");
-            }
-
-            _bio = BIOInterop.BIO_new(BIOInterop.BIO_s_socket());
-            if (!HasBIO)
-            {
-                CloseSocket();
-                throw new InteropException("Could not create a new BIO!");
-            }
-
-            // Attach socket to BIO, flag will close socket when BIO is closed.
-            BIOInterop.BIO_set_fd(_bio, _socket, Constants.BIO_CLOSE);
-        }
-
-        /// <summary>
-        /// Called by constructor. Creates a new socket for use by the BIO. The socket number is stored internally.
-        /// </summary>
-        /// <remarks>
-        /// <see cref="InteropException"/> Can be thrown when a socket is created but failed to connect to the remote server!
-        /// </remarks>
-        /// <param name="strict">
-        /// Determines if an <c>InvalidOperationException</c> will be thrown if attempting to create a socket when one already exists,
-        /// silently closes existing socket otherwise
-        /// </param>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when attempting to create a socket when one already exists and strict is true.
-        /// </exception>
-        /// <exception cref="InteropException">
-        /// Thrown when no socket could be created.
-        /// </exception>
-        protected void CreateSocket(bool strict = true)
-        {
-            if (HasSocket)
-            {
-                if (strict)
-                    throw new InvalidOperationException("A socket is already created! Use existing socket or close it first.");
-                CloseSocket();
-            }
-
-            CreateSocketInternal();
-            if (!HasSocket)
-            {
-                throw new InteropException("Could not create a socket!");
-            }
-        }
-
-        /// <summary>
-        /// Closes attached socket.
-        /// </summary>
-        /// <param name="strict">Throws <c>InvalidOperationException</c> when strict is true and no socet is currently attached.</param>
-        /// <exception cref="InvalidOperationException">
-        /// Thrown when no socket is in use and the strict parameter is true.
-        /// </exception>
-        protected void CloseSocket(bool strict = false)
-        {
-            if (!HasSocket)
-            {
-                if (strict)
-                    throw new InvalidOperationException("No socket attached to this object!");
-                return;
-            }
-            BIOInterop.BIO_closesocket(_socket);
-            _socket = -1;
-        }
-
-        /// <summary>
-        /// Does the work for creating a socket. Note that the socket may not be successfully created,
-        /// and you should always check <see cref="HasSocket"/> after calling this function.
-        /// </summary>
-        private protected void CreateSocketInternal()
-        {
+            int socket = -1;
             // Prepare for results
             IntPtr resPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(IntPtr)));
-            
+
             // Fetch results and check for validity
             if (!BIOInterop.BIO_lookup_ex(hostname, port, Constants.BIO_LOOKUP_CLIENT,
-                Constants.AF_INET, Constants.SOCK_STREAM, 0, resPtr))
+                Constants.AF_UNSPEC, (int)socketType, 0, resPtr))
             {
-                // Cleanup  TODO: Dedupe cleanup here and at the end of the function
-                Marshal.FreeHGlobal(resPtr);
-                return;
+                goto CleanAndExit;
             }
 
             IntPtr addrInfo;
@@ -138,16 +53,17 @@ namespace OpenSSLWebClient.Components
             for (addrInfo = res; addrInfo != IntPtr.Zero; addrInfo = BIOInterop.BIO_ADDRINFO_next(addrInfo))
             {
                 // Attempt to create a socket valid for our purposes
-                _socket = BIOInterop.BIO_socket(BIOInterop.BIO_ADDRINFO_family(addrInfo), Constants.SOCK_STREAM, 0, 0);
-                if (_socket == -1)
+                socket = BIOInterop.BIO_socket(BIOInterop.BIO_ADDRINFO_family(addrInfo), Constants.SOCK_STREAM, 0, 0);
+                if (socket == -1)
                 {
                     continue;
                 }
 
                 // Attempt to connect to the address using the socket
-                if (!BIOInterop.BIO_connect(_socket, BIOInterop.BIO_ADDRINFO_address(addrInfo), Constants.BIO_SOCK_NODELAY))
+                if (!BIOInterop.BIO_connect(socket, BIOInterop.BIO_ADDRINFO_address(addrInfo), Constants.BIO_SOCK_NODELAY))
                 {
-                    CloseSocket();
+                    BIOInterop.BIO_closesocket(socket);
+                    socket = -1;
                     continue;
                 }
 
@@ -155,37 +71,101 @@ namespace OpenSSLWebClient.Components
                 break;
             }
 
-            // Cleanup  TODO: Dedupe cleanup here and at the early return
             BIOInterop.BIO_ADDRINFO_free(res);
+        // Above is not included in label as the variable is not defined or assigned when we goto here.
+        CleanAndExit:
             Marshal.FreeHGlobal(resPtr);
+
+            return socket;
         }
 
-        /// <inheritdoc/>
-        /// <remarks>
-        /// Note that this method does not free the underlying c object,
-        /// as that should be done by the <see cref="SSL"/> layer.
-        /// See <see href="https://docs.openssl.org/3.4/man3/SSL_free/#notes"/>
-        /// </remarks>
+        /// <summary>
+        /// Constructs a new BIO with a stream type socket connected to the specified hostname and port.
+        /// </summary>
+        /// <param name="hostname"></param>
+        /// <param name="port"></param>
+        /// <returns></returns>
+        /// <exception cref="InteropException">Thrown if no valid socket can be found</exception>
+        public static BIO NewWithTCPSocket(string hostname, string port)
+        {
+            BIO bio = new BIO(method: BioMethod.Socket);
+            int socket = GetSocket(hostname, port, SocketType.Stream);
+            if (socket == -1)
+            {
+                throw new InteropException("Could not create a valid socket");
+            }
+            bio.SetFD(socket, Constants.BIO_CLOSE);
+            return bio;
+        }
+
+        public BIO(BioMethod method = BioMethod.Socket)
+        {
+            IntPtr meth;
+            switch (method)
+            {
+                case BioMethod.Socket:
+                    meth = BIOInterop.BIO_s_socket();
+                    break;
+                default:
+                    throw new ArgumentException("Unsupported BioMethod " + method);
+            }
+            _bio = BIOInterop.BIO_new(meth);
+        }
+
+        /// <summary>
+        /// Sets the file descriptor to be used by the BIO using the specified close flag.
+        /// </summary>
+        /// <param name="fd">File descriptor</param>
+        /// <param name="flag">One of <see cref="Constants.BIO_CLOSE"/> or <see cref="Constants.BIO_NOCLOSE"/></param>
+        /// <returns></returns>
+        public bool SetFD(int fd, int flag = Constants.BIO_CLOSE)
+        {
+            _fd = fd;
+            return BIOInterop.BIO_set_fd(_bio, fd, flag) == 1;
+        }
+
+        /// <summary>
+        /// This method is called by <see cref="SSL.SetBio"/> to let us know the unmanaged resource will be freed
+        /// during <see cref="SSL.Free"/>.
+        /// </summary>
+        protected internal void Manage()
+        {
+            _managed = true;
+        }
+
+        /// <summary>
+        /// Frees the unmanaged object if and only if <see cref="_managed"/> is false.
+        /// Call <see cref="Dispose"/> instead.
+        /// </summary>
+        private void Free()
+        {
+            Debug.Assert(!_managed, "BIO is mangaged by another object and MUST NOT attempt to free unmanaged resources itself.");
+            if (!_managed)
+            {
+                BIOInterop.BIO_free(_bio);
+            }
+        }
+
         public void Dispose()
         {
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }
 
-        /// <inheritdoc cref="Dispose"/>
-        /// <param name="disposing">True when disposing, false during finalization.</param>
         protected virtual void Dispose(bool disposing)
         {
             if (!_disposed)
             {
                 if (disposing)
                 {
-                    // No managed resources
-                    // This block is kept for future proofing (hopefully)
+                    // No managed resources to dispose currently
                 }
-
+                // Only free unmanaged resources if they won't be freed already.
+                if (!_managed)
+                {
+                    Free();
+                }
                 _bio = IntPtr.Zero;
-                _socket = -1;
                 _disposed = true;
             }
         }

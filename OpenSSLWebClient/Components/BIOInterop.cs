@@ -105,7 +105,7 @@ namespace OpenSSLWebClient.Components
         internal static extern bool BIO_closesocket(int sock);
 
         /// <summary>
-        /// Returns socket BIO method.
+        /// Returns the BIO method for a socket.
         /// <see href="https://docs.openssl.org/3.4/man3/BIO_s_socket/"/>
         /// </summary>
         [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
@@ -120,6 +120,20 @@ namespace OpenSSLWebClient.Components
         /// <remarks>Return of IntPtr.Zero is untested!</remarks>
         [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
         internal static extern IntPtr BIO_new(IntPtr method);
+
+        /// <summary>
+        /// Frees the single unmanaged BIO object. May affect the underlying I/O structure.
+        /// <see href="https://docs.openssl.org/3.4/man3/BIO_new/"/>
+        /// </summary>
+        /// <remarks>
+        /// MUST NOT be used on a BIO object attached to an SSL object.
+        /// The call to SSL_free will free both the SSL and all attached BIOs.
+        /// If BIO_free is also called (before or after), the program is likely to crash.
+        /// </remarks>
+        /// <param name="bio">Pointer to unmanaged <c>BIO</c> object.</param>
+        /// <returns>1 for success, and 0 for failure</returns>
+        [DllImport("libcrypto-3.dll", CallingConvention = CallingConvention.Cdecl)]
+        internal static extern int BIO_free(IntPtr bio);
 
         /// <summary>
         /// BIO control operation using integer parameters.
@@ -139,7 +153,7 @@ namespace OpenSSLWebClient.Components
         /// <param name="bio">Pointer to BIO object</param>
         /// <param name="fd">File descriptor number, typically socket number</param>
         /// <param name="flags">Either of <c>BIO_NOCLOSE</c> or <c>BIO_CLOSE</c> <see cref="Constants"/></param>
-        /// <returns></returns>
+        /// <returns>1 on success or <=0 on failure</returns>
         internal static int BIO_set_fd(IntPtr bio, int fd, int flags)
         {
             return BIO_int_ctrl(bio, Constants.BIO_C_SET_FD, flags, fd);
