@@ -178,10 +178,7 @@ namespace OpenSSLWebClient.Components
         /// <inheritdoc cref="_ssl"/>
         public IntPtr Pointer => _ssl;
         public bool HasBios => _rbio != null && _wbio != null;
-        // TODO: unneeded? Provide better check elsewhere?
-        public bool IsReady => !_disposed && !_closed
-            && _ssl != null && _ssl != IntPtr.Zero
-            && HasBios;
+        public bool IsReady => !_disposed && !_closed && _connected;
         /// <summary>Number of bytes ready to be read.</summary>
         public int Pending
         {
@@ -238,7 +235,6 @@ namespace OpenSSLWebClient.Components
         /// <summary>
         /// Reads bytes into the provided buffer.
         /// </summary>
-        /// <remarks>If no pending data is available to be read, this method will immediately return 0.</remarks>
         /// <param name="buf">A span of bytes to write into.</param>
         /// <returns>Number of bytes read as an integer.</returns>
         /// <exception cref="ArgumentException">Thrown when buf is null or of length 0</exception>
@@ -251,11 +247,6 @@ namespace OpenSSLWebClient.Components
             }
 
             ThrowBadState(hasBios: true, isConnected: true);
-
-            if (!HasPending)
-            {
-                return 0;
-            }
 
             IntPtr readbytesPtr = Marshal.AllocHGlobal(Marshal.SizeOf(typeof(UIntPtr)));
             Marshal.WriteIntPtr(readbytesPtr, IntPtr.Zero);
